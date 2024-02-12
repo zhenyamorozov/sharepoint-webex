@@ -1,4 +1,4 @@
-# These exceptions may be raised at different stages of the scheduling proces
+# These exceptions may be raised at different stages of the scheduling process
 
 
 class ParameterStoreError(Exception):
@@ -10,7 +10,7 @@ class SharepointInitError(Exception):
     pass
 
 class SharepointColumnMappingError(Exception):
-    """Custom exception raised when Ssharepoint columns could not be fully mapped to the schema"""
+    """Custom exception raised when Sharepoint columns could not be fully mapped to the schema"""
     pass
 
 class WebexIntegrationInitError(Exception):

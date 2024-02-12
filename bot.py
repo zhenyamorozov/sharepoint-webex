@@ -192,7 +192,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
                         size=FontSize.MEDIUM,
                     ),
                     TextBlock(
-                        text="Information for scheduled sessions is taken from a Sharepoint Lists folder. Here you can chang ethe Sharepoint Site URL, the name of the List, and the name f the list folder.",
+                        text="Information for scheduled webinars is taken from a Sharepoint Lists folder. Here you can change the Sharepoint Site URL, the name of the List, and the name pf the list folder.",
                         wrap=True,
                     ),
                     FactSet(
@@ -268,7 +268,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
 
                     try:
                         saveSharepointParams(spSiteURL, spListName, spFolderName)
-                        # send cpnfirmation message
+                        # send confirmation message
                         botApi.messages.create(
                             markdown=f"New Sharepoint parameters are set:\nSite URL: ``{spSiteURL}``\nList name: ``{spListName}``\nFolder name: ``{spFolderName}``",
                             roomId=os.getenv("WEBEX_BOT_ROOM_ID")
@@ -305,7 +305,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
         #                 {
         #                     'title': "Start Date",
         #                     'type': smartsheet.models.enums.column_type.ColumnType.DATE,
-        #                     'description': "You can change the date format in Profile icon - Personal Seetings - Settings - Regional Preferences. Required field."
+        #                     'description': "You can change the date format in Profile icon - Personal Settings - Settings - Regional Preferences. Required field."
         #                 },
         #                 {
         #                     'title': "Start Time",
@@ -450,7 +450,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
                         card=AdaptiveCard(
                             body=[
                                 TextBlock(
-                                    text="Click the button below and complete authorization process in your broswer.",
+                                    text="Click the button below and complete authorization process in your browser.",
                                     wrap=True,
                                 ),
                             ],

@@ -127,7 +127,7 @@ Using the **Set Sharepoint** action button, you can set the working Sharepoint L
 
 .. image:: images/bot-set-sharepoint.png
     :width: 753
-    :alt: The bot offers optionto change Sharepoint details.
+    :alt: The bot offers the option change Sharepoint details.
 
 Authorize this automation to create webinars on behalf of a user. The authorization form will open in web browser.
 

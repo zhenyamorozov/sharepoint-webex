@@ -1,5 +1,5 @@
 """
-    Utilities for interactibg with Parameter Store. Implemented for AWS SSM Parameter Store.
+    Utilities for interacting with Parameter Store. Implemented for AWS SSM Parameter Store.
 """
 
 import json

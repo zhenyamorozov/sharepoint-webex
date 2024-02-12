@@ -25,7 +25,7 @@ Webinars are created
     :width: 1500
     :alt: Sharepoint Lists screenshot showing the scheduled webinars details appearing
 
-If need to change title, description, or reshedule, run the bot command again. You can also run it on a schedule.
+If need to change title, description, or reschedule, run the bot command again. You can also run it on a schedule.
 
 
 Features

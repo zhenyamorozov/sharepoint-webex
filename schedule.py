@@ -147,9 +147,9 @@ def initSharepoint():
                 spColumnMap: dict mapping column names to Sharepoint internal field names
 
         Raises:
-            ParameterStoreErrorr: Could not read Sharepoint parameters from parameter store.
-            SharepointInitError: An error occurred accessing Ssharepoint, or Sharepoint List name or Sharepoint folder name is wrong.
-            ShareointColumnMappingError: Sharepoint List columns could not be properly mapped.
+            ParameterStoreError: Could not read Sharepoint parameters from parameter store.
+            SharepointInitError: An error occurred accessing Sharepoint, or Sharepoint List name or Sharepoint folder name is wrong.
+            SharepointColumnMappingError: Sharepoint List columns could not be properly mapped.
              Occurs when one or more of the required columns are missing from the provided Sharepoint List.
     """
     global spColumnMap
@@ -259,7 +259,7 @@ def initWebexBot():
 
 
 def getWebinarProperty(propertyName, spRow=None):
-    """Returns value for webinar property taken from a source, in order of piority:
+    """Returns value for webinar property taken from a source, in order of priority:
         1. If propertyName column exists in Sharepoint list and cell is not empty,
             return its value
         2. If propertyName filed exists in WEBEX_INTEGRATION_PARAMS and is not empty,
@@ -372,7 +372,7 @@ def run():
     try:
         spList, spFolder, spColumnMap = initSharepoint()
     except ParameterStoreError as ex:
-        logger.fatal("Could not read Shsarpeoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: " + str(ex))
+        logger.fatal("Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: " + str(ex))
         raise SystemExit()
     except SharepointInitError as ex:
         logger.fatal("Sharepoint API connection error. " + str(ex))
@@ -608,7 +608,7 @@ def run():
                 # process panelists and cohosts
 
                 if getWebinarProperty('noCohosts'):
-                    # treat chohosts as panelists
+                    # treat cohosts as panelists
                     event['panelists'].update(event['cohosts'])
                     event['cohosts'] = {}
 

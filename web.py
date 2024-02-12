@@ -56,7 +56,7 @@ except Exception:
     pass
 # try to get the AWS EC2 instance URL (prod)
 try:
-    # AWS IMDSv2 requires authenticatiom
+    # AWS IMDSv2 requires authentication
     r = requests.put("http://169.254.169.254/latest/api/token",
         headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
         timeout=2)
@@ -66,7 +66,7 @@ try:
         timeout=2)
     if r.text:
         webAppPublicUrl = "http://" + r.text
-        print("Obtained public URL from AWS NMDS: " + webAppPublicUrl)
+        print("Obtained public URL from AWS IMDS: " + webAppPublicUrl)
 except Exception:
     # do nothing
     pass
