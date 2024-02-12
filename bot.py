@@ -192,7 +192,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
                         size=FontSize.MEDIUM,
                     ),
                     TextBlock(
-                        text="Information for scheduled webinars is taken from a Sharepoint Lists folder. Here you can change the Sharepoint Site URL, the name of the List, and the name pf the list folder.",
+                        text="Information for scheduled webinars is taken from a Sharepoint Lists folder. Here you can change the Sharepoint Site URL, the name of the List, and the name of the list folder.",
                         wrap=True,
                     ),
                     FactSet(

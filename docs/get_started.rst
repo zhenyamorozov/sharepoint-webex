@@ -126,7 +126,7 @@ Initialize the bot by @mentioning it and follow instructions on the cards.
 Using the **Set Sharepoint** action button, you can set the working Sharepoint List details: Sharepoint site URL, List name, and working folder name.
 
 .. image:: images/bot-set-sharepoint.png
-    :width: 753
+    :width: 751
     :alt: The bot offers the option change Sharepoint details.
 
 Authorize this automation to create webinars on behalf of a user. The authorization form will open in web browser.
