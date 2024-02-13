@@ -11,8 +11,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from email.utils import getaddresses
 import tempfile
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 
 # SDK imports
 import webexteamssdk
