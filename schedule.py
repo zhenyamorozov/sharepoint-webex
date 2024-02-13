@@ -9,9 +9,10 @@ import logging
 import io
 import json
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 from email.utils import getaddresses
 import tempfile
+from dotenv import load_dotenv
+
 
 # SDK imports
 import webexteamssdk
@@ -84,7 +85,7 @@ def loadParameters(logger):
     if not WEBEX_BOT_ROOM_ID:
         logger.fatal("Webex Bot room ID is missing. It is required for logging and control. Provide with WEBEX_BOT_ROOM_ID environment variable.")
         raise SystemExit()
-    
+
     logger.info("Required parameters are loaded from env.")
 
     # load optional parameters from env
@@ -162,7 +163,7 @@ def initSharepoint():
     try:
         spApi = ClientContext(spSiteURL).with_credentials(
             ClientCredential(
-                SHAREPOINT_CLIENT_ID, 
+                SHAREPOINT_CLIENT_ID,
                 SHAREPOINT_CLIENT_SECRET
             )
         )
@@ -274,7 +275,7 @@ def getWebinarProperty(propertyName, spRow=None):
             propertyValue (str): for number/text fields,
             or None
     """
-    
+
     try:
         # if property value is specified in Sharepoint list, return it
         return spRow.properties[spColumnMap[propertyName]]
@@ -322,7 +323,7 @@ def run():
 
         Returns: None
 
-    """    
+    """
 
     #
     #   Initialize logging
@@ -372,16 +373,16 @@ def run():
     try:
         spList, spFolder, spColumnMap = initSharepoint()
     except ParameterStoreError as ex:
-        logger.fatal("Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: " + str(ex))
+        logger.fatal("Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
         raise SystemExit()
     except SharepointInitError as ex:
-        logger.fatal("Sharepoint API connection error. " + str(ex))
+        logger.fatal("Sharepoint API connection error: %s", ex)
         raise SystemExit()
     except SharepointColumnMappingError as ex:
-        logger.fatal("Sharepoint List column mapping error. " + str(ex))
+        logger.fatal("Sharepoint List column mapping error: %s", ex)
         raise SystemExit()
     except Exception as ex:
-        logger.fatal("Sharepoint initialization error. " + str(ex))
+        logger.fatal("Sharepoint initialization error: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Sharepoint.")
 
@@ -392,13 +393,13 @@ def run():
     try:
         webexApi = initWebexIntegration()
     except ParameterStoreError as ex:
-        logger.fatal("Could not read Webex Integration tokens from Parameter Store. Check local AWS configuration. Service reported: " + str(ex))
+        logger.fatal("Could not read Webex Integration tokens from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
         raise SystemExit()
     except WebexIntegrationInitError as ex:
-        logger.fatal("Could not initialize Webex Integration. Service reported: " + str(ex))
+        logger.fatal("Could not initialize Webex Integration. Service reported: %s", ex)
         raise SystemExit()
     except Exception as ex:
-        logger.fatal("Could not initialize Webex Integration. Service reported: " + str(ex))
+        logger.fatal("Could not initialize Webex Integration. Service reported: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Webex Integration.")
 
@@ -409,7 +410,7 @@ def run():
     try:
         botApi = initWebexBot()
     except Exception as ex:
-        logger.fatal("Could not initialize Webex bot. Service reported: " + str(ex))
+        logger.fatal("Could not initialize Webex bot. Service reported: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Webex bot.")
 
@@ -475,9 +476,9 @@ def run():
                 event['panelists'].update(alwaysInvitePanelists)
 
                 event['id'] = getWebinarProperty('webinarId', spRow)
-                logger.info("Processing \"{}\"".format(event['title']))
+                logger.info("Processing \"%s\"", event['title'])
             except Exception as ex:
-                logger.error("Failed to process \"{}\". The webinar property is not valid: {}".format(event['title'], ex))
+                logger.error("Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
                 continue
 
             if not event['id']:
@@ -498,16 +499,15 @@ def run():
                         enabledJoinBeforeHost=event['enabledJoinBeforeHost'],
                         joinBeforeHostMinutes=event['joinBeforeHostMinutes']
                     )
-                    logger.warning("Created webinar {}".format(w.title))
-                except Exception as ex:
-                    logger.error("Failed to create webinar \"{}\". API returned error: {}".format(event['title'], ex))
+                    logger.warning("Created webinar %s", w.title)
+                except webexteamssdk.exceptions.ApiError as ex:
+                    logger.error("Failed to create webinar \"%s\". API returned error: %s", event['title'], ex)
                     try:
                         for err in ex.details['errors']:
-                            logger.error("  " + err['description'])
+                            logger.error("  %s", err['description'])
                     except Exception:
                         pass
                     continue
-                pass
 
                 # update newly created webinar ID and info back into Sharepoint list
                 try:
@@ -531,7 +531,7 @@ def run():
                     logger.info("Updated webinar information into Sharepoint list.")
 
                 except Exception as ex:
-                    logger.error("Failed to update created webinar information into Sharepoint list. API returned error: {}".format(ex))
+                    logger.error("Failed to update created webinar information into Sharepoint list. API returned error: %s", ex)
 
             else:
                 # update existing event
@@ -562,15 +562,15 @@ def run():
                             # reminderTime=event['reminderTime'],
                             # registration=event['registration'],
                             enabledJoinBeforeHost=event['enabledJoinBeforeHost'],
-                            joinBeforeHostMinutes=event['joinBeforeHostMinutes'],                            
+                            joinBeforeHostMinutes=event['joinBeforeHostMinutes'],
                             sendEmail=needUpdateSendEmail
                         )
-                        logger.warning("Updated webinar information: {}".format(w.title))
-                except Exception as ex:
-                    logger.error("Failed to update webinar \"{}\". API returned error: {}".format(event['title'], ex))
+                        logger.warning("Updated webinar information: %s", w.title)
+                except webexteamssdk.exceptions.ApiError as ex:
+                    logger.error("Failed to update webinar \"%s\". API returned error: %s", event['title'], ex)
                     try:
                         for err in ex.details['errors']:
-                            logger.error("  " + err['description'])
+                            logger.error("  %s", err['description'])
                     except Exception:
                         pass
                     continue
@@ -584,13 +584,13 @@ def run():
                     if 'registrantCount' in spColumnMap:
                         spRow.set_property(spColumnMap['registrantCount'], registrantCount)
                     else:
-                        raise Exception("No column in Sharepoint list to save Registration Count.")
+                        raise SharepointColumnMappingError("No column in Sharepoint list to save Registration Count.")
 
                     spRow.update().execute_query()
                     logger.info("Refreshed webinar Registration Count in Sharepoint list.")
 
                 except Exception as ex:
-                    logger.error("Failed to refresh webinar Registration Count in Sharepoint list. API returned error: {}".format(ex))
+                    logger.error("Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
 
             # update invitees (panelists and cohosts) for created or updated event
             try:
@@ -602,7 +602,7 @@ def run():
                     if i.panelist or i.coHost:
                         currentInvitees[i.email] = i
             except Exception as ex:
-                logger.error("Failed to process invitees for webinar \"{}\". API returned error: {}".format(event['title'], ex))
+                logger.error("Failed to process invitees for webinar \"%s\". API returned error: %s", event['title'], ex)
             else:
 
                 # process panelists and cohosts
@@ -620,7 +620,7 @@ def run():
                                 or (email in event['cohosts']) != currentInvitees[email].coHost:
                             # name or status changed
                             try:
-                                r = webexApi.meeting_invitees.update(
+                                webexApi.meeting_invitees.update(
                                     meetingInviteeId=currentInvitees[email].id,
                                     email=email,
                                     displayName=eventInvitees[email],
@@ -628,14 +628,14 @@ def run():
                                     coHost=email in event['cohosts'],
                                     sendEmail=True
                                 )
-                                logger.info("Updated invitee {} <{}>".format(eventInvitees[email], email))
+                                logger.info("Updated invitee %s <%s>", eventInvitees[email], email)
                             except Exception as ex:
-                                logger.error("Failed to update invitee \"{}\" for webinar \"{}\". API returned error: {}".format(email, event['title'], ex))
+                                logger.error("Failed to update invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
                         del currentInvitees[email]    # remove processed from the uninvite list
                     else:
                         # new, need to invite
                         try:
-                            r = webexApi.meeting_invitees.create(
+                            webexApi.meeting_invitees.create(
                                 meetingId=w.id,
                                 email=email,
                                 displayName=eventInvitees[email],
@@ -643,22 +643,22 @@ def run():
                                 coHost=email in event['cohosts'],
                                 sendEmail=True
                             )
-                            logger.info("Invited {} <{}>".format(eventInvitees[email], email))
+                            logger.info("Invited %s <%s>", eventInvitees[email], email)
                         except Exception as ex:
-                            logger.error("Failed to create invitee \'{}\' for webinar \"{}\". API returned error: {}".format(email, event['title'], ex))
+                            logger.error("Failed to create invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
                 # uninvite panelists/cohosts who remained in the uninvite list
-                for email in currentInvitees:
+                for email, invitee in currentInvitees.items():
                     try:
-                        r = webexApi.meeting_invitees.delete(
-                            meetingInviteeId=currentInvitees[email].id
+                        webexApi.meeting_invitees.delete(
+                            meetingInviteeId=invitee.id
                         )
-                        logger.info("Uninvited {} <{}>".format(currentInvitees[email].displayName, email))
+                        logger.info("Uninvited %s <%s>", invitee.displayName, email)
                     except Exception as ex:
-                        logger.error("Failed to delete invitee \"{}\" from webinar \"{}\". API returned error: {}".format(email, event['title'], ex))
+                        logger.error("Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
 
     # /for
-    
-    logger.warning(f"Done in {datetime.now()-startTime}. Total registrants: {totalRegistrantCount}.")
+
+    logger.warning("Done in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
 
     #
     # Process logs and close logging
@@ -681,7 +681,7 @@ def run():
 
         os.remove(tmp.name)
     except Exception as ex:
-        logger.error("Failed to post log into Webex bot room. " + str(ex))
+        logger.error("Failed to post log into Webex bot room. %s", ex)
 
     # close logging
     briefLogString.close()

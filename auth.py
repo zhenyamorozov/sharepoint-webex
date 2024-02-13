@@ -1,19 +1,21 @@
-from flask import redirect, request, session
-
-from param_store import *
+""" This module implements Webex Integration authorization OAuth 2 flow """
 
 import os
 from uuid import uuid4
 import urllib.parse
 import requests
 
+from flask import redirect, request, session
+
+from param_store import saveWebexIntegrationTokens
+
 # OAuth static vars
 oa_authorizationURI = "https://webexapis.com/v1/authorize?"
 oa_tokenURI = "https://webexapis.com/v1/access_token"
 
 
-# initializes this module, called immediately after importing
 def init(webAppPublicUrl):
+    """ Initializes this module, called immediately after importing: """
     global oa_callbackUri
     if os.getenv("FLASK_ENV") == "development":
         # dev
@@ -90,9 +92,10 @@ def callback():
     # print(oa_tokens)
     if not oa_resp.ok:
         return "Authorization failed. Authorization provider returned:<br> " + str(oa_tokens)
-    else:
-        try:
-            saveWebexIntegrationTokens(oa_tokens)
-        except Exception:
-            return "Webex authorization was successful, but could not save tokens to Parameter Store. Check local AWS configuration."
-        return "Authorization successful. Access and refresh tokens retrieved and saved in Parameter Store."
+
+    try:
+        saveWebexIntegrationTokens(oa_tokens)
+    except Exception:
+        return "Webex authorization was successful, but could not save tokens to Parameter Store. Check local AWS configuration."
+
+    return "Authorization successful. Access and refresh tokens retrieved and saved in Parameter Store."

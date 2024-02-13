@@ -1,6 +1,4 @@
-"""
-    Utilities for interacting with Parameter Store. Implemented for AWS SSM Parameter Store.
-"""
+""" Utilities for interacting with Parameter Store. Implemented for AWS SSM Parameter Store. """
 
 import json
 import time
@@ -24,7 +22,7 @@ def getSharepointParams():
 
     # load parameters from parameter store
     ssm_client = boto3.client("ssm")
-    
+
     spSiteURL = ssm_client.get_parameter(
         Name="/sharepoint-webex/spSiteURL",
         WithDecryption=True

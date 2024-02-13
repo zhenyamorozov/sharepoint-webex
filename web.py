@@ -3,12 +3,12 @@ This web application serves two purposes:
     - process OAuth requests for Webex Integration
     - respond to Webex bot webhooks
 """
-
-from flask import Flask
-
 import os
 from dotenv import load_dotenv
 import requests
+
+from flask import Flask
+
 
 # load env variables
 load_dotenv(override=True)
@@ -87,6 +87,7 @@ app.secret_key = FLASK_SECRET_KEY
 
 @app.route("/")
 def root():
+    """ / handler """
     print("/ requested")
     return "Hey, this is Sharepoint-Webex running on Flask!<br>This application is open source: <a href=\"https://github.com/zhenyamorozov/sharepoint-webex\">github</a>"
 
