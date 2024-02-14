@@ -522,10 +522,9 @@ def run():
                         logger.info("No column in Sharepoint list to save Host Key.")
 
                     if 'attendeeUrl' in spColumnMap:
-                        spRow.set_property(spColumnMap['attendeeUrl'], "Manually copy the Attendee URL from Webex")
-                        # TODO to be added when API supports - Attendee Registration URL
+                        spRow.set_property(spColumnMap['attendeeUrl'], w.registerLink)
                     else:
-                        logger.info("No column in Sharepoint list to save Attendee URL.")
+                        logger.info("No column in Sharepoint list to save Attendee Registration URL.")
 
                     spRow.update().execute_query()
                     logger.info("Updated webinar information into Sharepoint list.")
