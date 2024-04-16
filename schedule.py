@@ -169,9 +169,9 @@ def initSharepoint():
         )
 
         # query the list
-        spList = spApi.web.lists.get_by_title(spListName).get().execute_query()
+        spList = spApi.web.lists.get_by_title(spListName) #.get().execute_query()
 
-        # fetch folder and find the working folder
+        # fetch folders and find the working folder
         qry = CamlQuery()
         qry.ViewXml = """
         <View Scope='DefaultValue'>
@@ -183,9 +183,12 @@ def initSharepoint():
                     </BeginsWith>
                 </Where>
             </Query>
-        </View>    
+        </View>
         """
-        folders = spList.get_items(qry).execute_query()
+
+        # folders = spList.get_items(qry).execute_query()
+        folders = spList.items.get().execute_query()
+
         spFolder = next(f for f in folders if f.properties['Title']==spFolderName)
 
         # fetch Sharepoint list fields
