@@ -169,7 +169,7 @@ def initSharepoint():
         )
 
         # query the list
-        spList = spApi.web.lists.get_by_title(spListName) #.get().execute_query()
+        spList = spApi.web.lists.get_by_title(spListName).get().execute_query()
 
         # fetch folders and find the working folder
         qry = CamlQuery()
@@ -206,6 +206,7 @@ def initSharepoint():
     for column in SHAREPOINT_PARAMS['columns']:
         if SHAREPOINT_PARAMS['columns'][column] in columns:
             spColumnMap[column] = columns[SHAREPOINT_PARAMS['columns'][column]]
+
     # check if all required columns are present in the Sharepoint list
     requiredColumns = ['create', 'startdatetime', 'title', 'webinarId']
     columnsDiff = set(requiredColumns) - set(spColumnMap.keys())
