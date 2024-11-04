@@ -53,8 +53,11 @@ def loadParameters(logger):
     global WEBEX_BOT_TOKEN, WEBEX_BOT_ROOM_ID
     # Optional user-set parameters from the env
     global SHAREPOINT_PARAMS, WEBEX_INTEGRATION_PARAMS
+    global VERBOSE_LOGGING
 
     load_dotenv(override=True)
+    
+    VERBOSE_LOGGING = os.getenv('VERBOSE_LOGGING', 'False').lower() in ['true', '1', 't', 'y', 'yes']
 
     # load required parameters from env
     logger.info("Loading required parameters from env.")
@@ -667,22 +670,57 @@ def run():
     # Process logs and close logging
     #
     try:
-        with tempfile.NamedTemporaryFile(
-            prefix=datetime.utcnow().strftime("%Y%m%d-%H%M%S "),
-            suffix=".txt",
-            mode="wt",
-            encoding="utf-8",
-            delete=False
-        ) as tmp:
-            tmp.write(fullLogString.getvalue())
+        if VERBOSE_LOGGING:
+            # Split the full log in chunks at new lines and post as a thread
+            chunk_limit = 7000 # Webex limit is 7439 bytes
+            parent_id = None
+            current_chunk = "Done creating and updating webinars. Full log follows.\n\n"
 
-        botApi.messages.create(
-            roomId=WEBEX_BOT_ROOM_ID,
-            text="Done creating and updating webinars. Full log attached. Brief log follows.\n\n" + briefLogString.getvalue(),
-            files=[tmp.name]
-        )
+            for line in fullLogString.getvalue().splitlines():
+                if len(current_chunk) + len(line) + 1 <= chunk_limit:
+                    current_chunk += line + '\n'
+                else:
 
-        os.remove(tmp.name)
+                    # Post the chunk
+                    msg = botApi.messages.create(
+                        roomId=WEBEX_BOT_ROOM_ID,
+                        text=current_chunk,
+                        parentId=parent_id
+                    )
+
+                    # Make the next chunk a reply message
+                    if not parent_id:
+                        parent_id = msg.id
+
+                    # Start a new chunk
+                    current_chunk = line + '\n'
+
+            # Post the remaining last chunk
+            msg = botApi.messages.create(
+                roomId=WEBEX_BOT_ROOM_ID,
+                text=current_chunk,
+                parentId=parent_id
+            )
+        
+        
+        else:
+            # Post short log with attached full log
+            with tempfile.NamedTemporaryFile(
+                prefix=datetime.utcnow().strftime("%Y%m%d-%H%M%S "),
+                suffix=".txt",
+                mode="wt",
+                encoding="utf-8",
+                delete=False
+            ) as tmp:
+                tmp.write(fullLogString.getvalue())
+
+            botApi.messages.create(
+                roomId=WEBEX_BOT_ROOM_ID,
+                text="Done creating and updating webinars. Full log attached. Brief log follows.\n\n" + briefLogString.getvalue(),
+                files=[tmp.name]
+            )
+
+            os.remove(tmp.name)
     except Exception as ex:
         logger.error("Failed to post log into Webex bot room. %s", ex)
 
