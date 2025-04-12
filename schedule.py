@@ -64,29 +64,29 @@ def loadParameters(logger):
 
     SHAREPOINT_CLIENT_ID = os.getenv('SHAREPOINT_CLIENT_ID')
     if not SHAREPOINT_CLIENT_ID:
-        logger.fatal("Sharepoint Client ID is missing. Provide with SHAREPOINT_CLIENT_ID environment variable.")
+        logger.fatal("⛔ Sharepoint Client ID is missing. Provide with SHAREPOINT_CLIENT_ID environment variable.")
         raise SystemExit()
     SHAREPOINT_CLIENT_SECRET = os.getenv('SHAREPOINT_CLIENT_SECRET')
     if not SHAREPOINT_CLIENT_SECRET:
-        logger.fatal("Sharepoint Client Secret is missing. Provide with SHAREPOINT_CLIENT_SECRET environment variable.")
+        logger.fatal("⛔ Sharepoint Client Secret is missing. Provide with SHAREPOINT_CLIENT_SECRET environment variable.")
         raise SystemExit()
 
     WEBEX_INTEGRATION_CLIENT_ID = os.getenv('WEBEX_INTEGRATION_CLIENT_ID')
     if not WEBEX_INTEGRATION_CLIENT_ID:
-        logger.fatal("Webex Integration Client ID is missing. Provide with WEBEX_INTEGRATION_CLIENT_ID environment variable.")
+        logger.fatal("⛔ Webex Integration Client ID is missing. Provide with WEBEX_INTEGRATION_CLIENT_ID environment variable.")
         raise SystemExit()
     WEBEX_INTEGRATION_CLIENT_SECRET = os.getenv('WEBEX_INTEGRATION_CLIENT_SECRET')
     if not WEBEX_INTEGRATION_CLIENT_SECRET:
-        logger.fatal("Webex Integration Client Secret is missing. Provide with WEBEX_INTEGRATION_CLIENT_SECRET environment variable.")
+        logger.fatal("⛔Webex Integration Client Secret is missing. Provide with WEBEX_INTEGRATION_CLIENT_SECRET environment variable.")
         raise SystemExit()
 
     WEBEX_BOT_TOKEN = os.getenv('WEBEX_BOT_TOKEN')
     if not WEBEX_BOT_TOKEN:
-        logger.fatal("Webex Bot access token is missing. Provide with WEBEX_BOT_TOKEN environment variable.")
+        logger.fatal("⛔ Webex Bot access token is missing. Provide with WEBEX_BOT_TOKEN environment variable.")
         raise SystemExit()
     WEBEX_BOT_ROOM_ID = os.getenv('WEBEX_BOT_ROOM_ID')
     if not WEBEX_BOT_ROOM_ID:
-        logger.fatal("Webex Bot room ID is missing. It is required for logging and control. Provide with WEBEX_BOT_ROOM_ID environment variable.")
+        logger.fatal("⛔ Webex Bot room ID is missing. It is required for logging and control. Provide with WEBEX_BOT_ROOM_ID environment variable.")
         raise SystemExit()
 
     logger.info("Required parameters are loaded from env.")
@@ -116,12 +116,12 @@ def loadParameters(logger):
                 SHAREPOINT_PARAMS['columns'][i] = columns[i]
             logger.info("Optional Sharepoint column parameters are loaded from env.")
         except Exception:
-            logger.info("Could not load optional Sharepoint column parameters.")
+            logger.info("⛔ Could not load optional Sharepoint column parameters.")
         try:
             SHAREPOINT_PARAMS['nicknames'] = json.loads(os.getenv('SHAREPOINT_PARAMS'))['nicknames']
             logger.info("Optional Sharepoint nicknames parameters are loaded from env.")
         except Exception:
-            logger.info("Could not load optional Sharepoint nicknames parameters.")
+            logger.info("⛔ Could not load optional Sharepoint nicknames parameters.")
 
     else:
         logger.info("No optional Sharepoint parameters set in env.")
@@ -133,7 +133,7 @@ def loadParameters(logger):
             WEBEX_INTEGRATION_PARAMS = json.loads(os.getenv('WEBEX_INTEGRATION_PARAMS'))
             logger.info("Optional Webex Integration parameters are loaded from env.")
         except Exception as ex:
-            logger.info("Could not load optional Webex Integration parameters. " + str(ex))
+            logger.info("⛔ Could not load optional Webex Integration parameters. " + str(ex))
     else:
         logger.info("No optional Webex Integration parameters set in env.")
 
@@ -380,16 +380,16 @@ def run():
     try:
         spList, spFolder, spColumnMap = initSharepoint()
     except ParameterStoreError as ex:
-        logger.fatal("Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
+        logger.fatal("⛔ Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
         raise SystemExit()
     except SharepointInitError as ex:
-        logger.fatal("Sharepoint API connection error: %s", ex)
+        logger.fatal("⛔ Sharepoint API connection error: %s", ex)
         raise SystemExit()
     except SharepointColumnMappingError as ex:
-        logger.fatal("Sharepoint List column mapping error: %s", ex)
+        logger.fatal("⛔ Sharepoint List column mapping error: %s", ex)
         raise SystemExit()
     except Exception as ex:
-        logger.fatal("Sharepoint initialization error: %s", ex)
+        logger.fatal("⛔ Sharepoint initialization error: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Sharepoint.")
 
@@ -400,13 +400,13 @@ def run():
     try:
         webexApi = initWebexIntegration()
     except ParameterStoreError as ex:
-        logger.fatal("Could not read Webex Integration tokens from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
+        logger.fatal("⛔ Could not read Webex Integration tokens from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
         raise SystemExit()
     except WebexIntegrationInitError as ex:
-        logger.fatal("Could not initialize Webex Integration. Service reported: %s", ex)
+        logger.fatal("⛔ Could not initialize Webex Integration. Service reported: %s", ex)
         raise SystemExit()
     except Exception as ex:
-        logger.fatal("Could not initialize Webex Integration. Service reported: %s", ex)
+        logger.fatal("⛔ Could not initialize Webex Integration. Service reported: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Webex Integration.")
 
@@ -417,7 +417,7 @@ def run():
     try:
         botApi = initWebexBot()
     except Exception as ex:
-        logger.fatal("Could not initialize Webex bot. Service reported: %s", ex)
+        logger.fatal("⛔ Could not initialize Webex bot. Service reported: %s", ex)
         raise SystemExit()
     logger.info("Successfully initialized access to Webex bot.")
 
@@ -485,7 +485,7 @@ def run():
                 event['id'] = getWebinarProperty('webinarId', spRow)
                 logger.info("Processing \"%s\"", event['title'])
             except Exception as ex:
-                logger.error("Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
+                logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
                 continue
 
             if not event['id']:
@@ -506,9 +506,9 @@ def run():
                         enabledJoinBeforeHost=event['enabledJoinBeforeHost'],
                         joinBeforeHostMinutes=event['joinBeforeHostMinutes']
                     )
-                    logger.warning("Created webinar %s", w.title)
+                    logger.warning("🌟 Created webinar %s", w.title)
                 except webexteamssdk.exceptions.ApiError as ex:
-                    logger.error("Failed to create webinar \"%s\". API returned error: %s", event['title'], ex)
+                    logger.error("❗ Failed to create webinar \"%s\". API returned error: %s", event['title'], ex)
                     try:
                         for err in ex.details['errors']:
                             logger.error("  %s", err['description'])
@@ -521,23 +521,23 @@ def run():
                     if 'webinarId' in spColumnMap:
                         spRow.set_property(spColumnMap['webinarId'], w.id)
                     else:
-                        logger.error("No column in Sharepoint list to save Webinar ID.")    # critical for app logic
+                        logger.error("⛔ No column in Sharepoint list to save Webinar ID.")    # critical for app logic
 
                     if 'hostKey' in spColumnMap:
                         spRow.set_property(spColumnMap['hostKey'], w.hostKey)
                     else:
-                        logger.info("No column in Sharepoint list to save Host Key.")
+                        logger.info("⛔ No column in Sharepoint list to save Host Key.")
 
                     if 'attendeeUrl' in spColumnMap:
                         spRow.set_property(spColumnMap['attendeeUrl'], w.registerLink)
                     else:
-                        logger.info("No column in Sharepoint list to save Attendee Registration URL.")
+                        logger.info("⛔ No column in Sharepoint list to save Attendee Registration URL.")
 
                     spRow.update().execute_query()
                     logger.info("Updated webinar information into Sharepoint list.")
 
                 except Exception as ex:
-                    logger.error("Failed to update created webinar information into Sharepoint list. API returned error: %s", ex)
+                    logger.error("❗ Failed to update created webinar information into Sharepoint list. API returned error: %s", ex)
 
             else:
                 # update existing event
@@ -571,9 +571,9 @@ def run():
                             joinBeforeHostMinutes=event['joinBeforeHostMinutes'],
                             sendEmail=needUpdateSendEmail
                         )
-                        logger.warning("Updated webinar information: %s", w.title)
+                        logger.warning("🚩 Updated webinar information: %s", w.title)
                 except webexteamssdk.exceptions.ApiError as ex:
-                    logger.error("Failed to update webinar \"%s\". API returned error: %s", event['title'], ex)
+                    logger.error("❗ Failed to update webinar \"%s\". API returned error: %s", event['title'], ex)
                     try:
                         for err in ex.details['errors']:
                             logger.error("  %s", err['description'])
@@ -590,13 +590,13 @@ def run():
                     if 'registrantCount' in spColumnMap:
                         spRow.set_property(spColumnMap['registrantCount'], registrantCount)
                     else:
-                        raise SharepointColumnMappingError("No column in Sharepoint list to save Registration Count.")
+                        raise SharepointColumnMappingError("⛔ No column in Sharepoint list to save Registration Count.")
 
                     spRow.update().execute_query()
                     logger.info("Refreshed webinar Registration Count in Sharepoint list.")
 
                 except Exception as ex:
-                    logger.error("Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
+                    logger.error("❗ Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
 
             # update invitees (panelists and cohosts) for created or updated event
             try:
@@ -608,7 +608,7 @@ def run():
                     if i.panelist or i.coHost:
                         currentInvitees[i.email] = i
             except Exception as ex:
-                logger.error("Failed to process invitees for webinar \"%s\". API returned error: %s", event['title'], ex)
+                logger.error("❗ Failed to process invitees for webinar \"%s\". API returned error: %s", event['title'], ex)
             else:
 
                 # process panelists and cohosts
@@ -634,9 +634,9 @@ def run():
                                     coHost=email in event['cohosts'],
                                     sendEmail=True
                                 )
-                                logger.info("Updated invitee %s <%s>", eventInvitees[email], email)
+                                logger.info("🚩 Updated invitee %s <%s>", eventInvitees[email], email)
                             except Exception as ex:
-                                logger.error("Failed to update invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
+                                logger.error("❗ Failed to update invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
                         del currentInvitees[email]    # remove processed from the uninvite list
                     else:
                         # new, need to invite
@@ -649,9 +649,9 @@ def run():
                                 coHost=email in event['cohosts'],
                                 sendEmail=True
                             )
-                            logger.info("Invited %s <%s>", eventInvitees[email], email)
+                            logger.info("🧑 Invited %s <%s>", eventInvitees[email], email)
                         except Exception as ex:
-                            logger.error("Failed to create invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
+                            logger.error("❗ Failed to create invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
                 # uninvite panelists/cohosts who remained in the uninvite list
                 for email, invitee in currentInvitees.items():
                     try:
@@ -660,11 +660,11 @@ def run():
                         )
                         logger.info("Uninvited %s <%s>", invitee.displayName, email)
                     except Exception as ex:
-                        logger.error("Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
+                        logger.error("❗ Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
 
     # /for
 
-    logger.warning("Done in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
+    logger.warning("\nDone in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
 
     #
     # Process logs and close logging
