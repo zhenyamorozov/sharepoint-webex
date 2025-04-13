@@ -36,6 +36,14 @@ def init(webAppPublicUrl):
         print("Could not initialize Webex bot API object.")
         raise SystemExit()
 
+    # check the Webex bot room
+    try:
+        wr = botApi.rooms.get(os.getenv("WEBEX_BOT_ROOM_ID"))
+        print(f"Serving the Webex bot room {wr}")
+    except Exception:
+        print("Could not verify the Webex bot room.")
+        raise SystemExit()
+
     webhookTargetUrl = webAppPublicUrl + "/webhook"
 
     # delete ALL "Sharepoint-Webex bot..." current webhooks - this bot is supposed to be used only with one instance of the app
@@ -43,29 +51,32 @@ def init(webAppPublicUrl):
         for wh in botApi.webhooks.list():
             if wh.name.startswith("Sharepoint-Webex bot"):
                 botApi.webhooks.delete(wh.id)
+        print("Cleaned up old webhooks.")
     except Exception:
         print("Could not clean up Webex bot API webhooks.")
         raise SystemExit()
 
     # create new webhooks
     try:
-        botApi.webhooks.create(
+        wh = botApi.webhooks.create(
             name="Sharepoint-Webex bot - attachmentActions",
             targetUrl=webhookTargetUrl,
             resource="attachmentActions",
             event="created",
             filter="roomId=" + os.getenv("WEBEX_BOT_ROOM_ID")
         )
+        print(f"Created webhook {wh}")
     except Exception:
         print("Could not create a Webex bot API webhook.")
     try:
-        botApi.webhooks.create(
+        wh = botApi.webhooks.create(
             name="Sharepoint-Webex bot - messages",
             targetUrl=webhookTargetUrl,
             resource="messages",
             event="created",
             filter="roomId=" + os.getenv("WEBEX_BOT_ROOM_ID")
         )
+        print(f"Created webhook {wh}")
     except Exception:
         print("Could not create a Webex bot API webhook.")
 

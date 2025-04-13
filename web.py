@@ -65,15 +65,15 @@ try:
         headers={"X-aws-ec2-metadata-token": imdsToken},
         timeout=2)
     if r.text:
-        webAppPublicUrl = "http://" + r.text
+        webAppPublicUrl = "https://" + r.text
         print("Obtained public URL from AWS IMDS: " + webAppPublicUrl)
 except Exception:
     # do nothing
     pass
-# try to get the AWS Elastic Beanstalk environment URL from env
+# try to get the public URL from env
 if os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME"):
-    webAppPublicUrl = "http://" + os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME")
-    print("Obtained public URL from Elastic Beanstalk environment: " + webAppPublicUrl)
+    webAppPublicUrl = "https://" + os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME")
+    print("Obtained public URL from environment variable: " + webAppPublicUrl)
 
 if not webAppPublicUrl:
     print("Could not get the web app public URL")
@@ -101,4 +101,4 @@ bot.init(webAppPublicUrl)
 app.add_url_rule("/webhook", view_func=bot.webhook, methods=['GET', 'POST'])
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
