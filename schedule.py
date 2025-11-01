@@ -16,8 +16,7 @@ from dotenv import load_dotenv
 
 # SDK imports
 import webexteamssdk
-from office365.sharepoint.client_context import ClientContext, ClientCredential
-from office365.sharepoint.listitems.caml.query import CamlQuery
+from sp import SP
 
 # my imports
 from param_store import (
@@ -164,60 +163,24 @@ def initSharepoint():
         raise ParameterStoreError("Could not read Sharepoint parameters from parameter store. " + str(ex))
 
     try:
-        spApi = ClientContext(spSiteURL).with_credentials(
-            ClientCredential(
-                SHAREPOINT_CLIENT_ID,
-                SHAREPOINT_CLIENT_SECRET
-            )
-        )
-
-        # query the list
-        spList = spApi.web.lists.get_by_title(spListName).get().execute_query()
-
-        # fetch folders and find the working folder
-        qry = CamlQuery()
-        qry.ViewXml = """
-        <View Scope='DefaultValue'>
-            <Query>
-                <Where>
-                    <BeginsWith>
-                    <FieldRef Name='ContentTypeId' />
-                    <Value Type='ContentTypeId'>0x0120</Value>
-                    </BeginsWith>
-                </Where>
-            </Query>
-        </View>
-        """
-
-        # folders = spList.get_items(qry).execute_query()
-        folders = spList.items.get().execute_query()
-
-        spFolder = next(f for f in folders if f.properties['Title']==spFolderName)
-
-        # fetch Sharepoint list fields
-        fields = spList.fields.get().execute_query()
+        # Initialize Sharepoint Graph API
+        spApi = SP(spSiteURL, spListName, spFolderName)
+        
+        # Get actual column schema from SharePoint
+        available_columns = spApi.get_list_columns()
+        
+        # Build column map for backward compatibility
+        spColumnMap = {}
+        for column in SHAREPOINT_PARAMS['columns']:
+            display_name = SHAREPOINT_PARAMS['columns'][column]
+            if display_name in available_columns:
+                spColumnMap[column] = available_columns[display_name]
+            else:
+                raise SharepointColumnMappingError(f"A required column is missing in your Sharepoint list: {display_name}")
+        return (spApi, spApi.folder, spColumnMap)
 
     except Exception as ex:
-        raise SharepointInitError("Could not initialize access to Sharepoint. Check if Sharepoint parameters (Site URL, List Name, Folder Name) are correct." + str(ex))
-
-    columns = {}
-    # Build column map for later reference - translates column names to Sharepoint column internal names
-    for column in fields:
-        columns[column.title] = column.internal_name  #column.id
-
-    spColumnMap = {}
-    for column in SHAREPOINT_PARAMS['columns']:
-        if SHAREPOINT_PARAMS['columns'][column] in columns:
-            spColumnMap[column] = columns[SHAREPOINT_PARAMS['columns'][column]]
-
-    # check if all required columns are present in the Sharepoint list
-    requiredColumns = ['create', 'startdatetime', 'title', 'webinarId']
-    columnsDiff = set(requiredColumns) - set(spColumnMap.keys())
-    if columnsDiff:
-        raise SharepointColumnMappingError("Some required column(s) is(are) missing in your Sharepoint list: " + ", ".join(columnsDiff))
-
-    return (spList, spFolder, spColumnMap)
-
+        raise SharepointInitError("Could not initialize access to Sharepoint. " + str(ex))
 
 def initWebexIntegration():
     """Initializes access to Webex integration.
@@ -285,7 +248,7 @@ def getWebinarProperty(propertyName, spRow=None):
 
     try:
         # if property value is specified in Sharepoint list, return it
-        return spRow.properties[spColumnMap[propertyName]]
+        return spRow.get(spColumnMap[propertyName])
     except Exception:
         pass
     try:
@@ -432,12 +395,8 @@ def run():
     #
     # Loop over the Sharepoint list
     #
-    qry = CamlQuery()
-    qry.FolderServerRelativeUrl = f"Lists/{spList.title}/{spFolder.properties['Title']}"
-
-    for spRow in spList.get_items(qry).execute_query():
-
-        if spRow.properties[spColumnMap['create']]:
+    for spRow in spList.get_folder_items():
+        if spRow.get(spColumnMap['create']):
             event = {}
 
             logger.info("")    # insert empty line into log
@@ -447,7 +406,7 @@ def run():
             try:
                 event['agenda'] = getWebinarProperty('agenda', spRow)
                 event['scheduledType'] = getWebinarProperty('scheduledType', spRow) or 'webinar'
-                event['startdatetime'] = datetime.fromisoformat(getWebinarProperty('startdatetime', spRow))
+                event['startdatetime'] = getWebinarProperty('startdatetime', spRow)
                 event['duration'] = getWebinarProperty('duration', spRow) or 60    # by default, set duration to 1 hour
                 event['duration'] = int(float(event['duration']))    # make sure it's integer
                 event['enddatetime'] = event["startdatetime"] + timedelta(minutes=event['duration'])
@@ -482,13 +441,13 @@ def run():
                 alwaysInvitePanelists = stringContactsToDict(alwaysInvitePanelists)
                 event['panelists'].update(alwaysInvitePanelists)
 
-                event['id'] = getWebinarProperty('webinarId', spRow)
+                event['id'] = str(getWebinarProperty('webinarId', spRow)).replace('-', '') # Graph API returns UUID with hyphens, remove them
                 logger.info("Processing \"%s\"", event['title'])
             except Exception as ex:
                 logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
                 continue
 
-            if not event['id']:
+            if not event.get('id'):
                 # create event
                 try:
                     w = webexApi.meetings.create(
@@ -519,21 +478,21 @@ def run():
                 # update newly created webinar ID and info back into Sharepoint list
                 try:
                     if 'webinarId' in spColumnMap:
-                        spRow.set_property(spColumnMap['webinarId'], w.id)
+                        spRow[spColumnMap['webinarId']] = w.id
                     else:
                         logger.error("⛔ No column in Sharepoint list to save Webinar ID.")    # critical for app logic
 
                     if 'hostKey' in spColumnMap:
-                        spRow.set_property(spColumnMap['hostKey'], w.hostKey)
+                        spRow[spColumnMap['hostKey']] = w.hostKey
                     else:
                         logger.info("⛔ No column in Sharepoint list to save Host Key.")
 
                     if 'attendeeUrl' in spColumnMap:
-                        spRow.set_property(spColumnMap['attendeeUrl'], w.registerLink)
+                        spRow[spColumnMap['attendeeUrl']] = w.registerLink
                     else:
                         logger.info("⛔ No column in Sharepoint list to save Attendee Registration URL.")
 
-                    spRow.update().execute_query()
+                    spRow.save()
                     logger.info("Updated webinar information into Sharepoint list.")
 
                 except Exception as ex:
@@ -542,12 +501,12 @@ def run():
             else:
                 # update existing event
                 try:
-                    w = webexApi.meetings.get(event['id'])
+                    w = webexApi.meetings.get(event.get('id'))
 
                     needUpdateSendEmail = \
                         event['title'] != w.title \
-                        or event['startdatetime'] != datetime.fromisoformat(w.start) \
-                        or event['enddatetime'] != datetime.fromisoformat(w.end)    # fromisoformat() cannot process ISO-8601 strings prior to Python 3.11, thus remove the 'Z'
+                        or event['startdatetime'] != datetime.fromisoformat(w.start.replace('Z', '+00:00')) \
+                        or event['enddatetime'] != datetime.fromisoformat(w.end.replace('Z', '+00:00'))
 
                     needUpdate = \
                         needUpdateSendEmail \
@@ -588,11 +547,11 @@ def run():
                     totalRegistrantCount += registrantCount
 
                     if 'registrantCount' in spColumnMap:
-                        spRow.set_property(spColumnMap['registrantCount'], registrantCount)
+                        spRow[spColumnMap['registrantCount']] = registrantCount
                     else:
                         raise SharepointColumnMappingError("⛔ No column in Sharepoint list to save Registration Count.")
 
-                    spRow.update().execute_query()
+                    spRow.save()
                     logger.info("Refreshed webinar Registration Count in Sharepoint list.")
 
                 except Exception as ex:
@@ -658,7 +617,7 @@ def run():
                         webexApi.meeting_invitees.delete(
                             meetingInviteeId=invitee.id
                         )
-                        logger.info("Uninvited %s <%s>", invitee.displayName, email)
+                        logger.info("🚪 Uninvited %s <%s>", invitee.displayName, email)
                     except Exception as ex:
                         logger.error("❗ Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
 

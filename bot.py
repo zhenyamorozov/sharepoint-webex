@@ -177,7 +177,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
             try:
                 actor = botApi.people.get(personId=webhookJson['actorId'])
                 botApi.messages.create(
-                    markdown=f"Webinar scheduling requested by <@personId:{actor.id}|{actor.firstName}>. Will start the process. It will take a minute.",
+                    markdown=f"Webinar scheduling requested by <@personId:{actor.id}|{actor.firstName}>. Will start the process. It will take a few minutes.",
                     roomId=os.getenv("WEBEX_BOT_ROOM_ID")
                 )
             except Exception:
