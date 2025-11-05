@@ -441,7 +441,10 @@ def run():
                 alwaysInvitePanelists = stringContactsToDict(alwaysInvitePanelists)
                 event['panelists'].update(alwaysInvitePanelists)
 
-                event['id'] = str(getWebinarProperty('webinarId', spRow)).replace('-', '') # Graph API returns UUID with hyphens, remove them
+                event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
+                if event['id']:
+                    event['id'] = event['id'].hex # Convert UUID() to string
+                
                 logger.info("Processing \"%s\"", event['title'])
             except Exception as ex:
                 logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
