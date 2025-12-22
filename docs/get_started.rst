@@ -10,14 +10,19 @@ Sharepoint
 ----------
 To get the Sharepoint API Client ID and Client Secret:
 
-#. Log in to the Microsoft SharePoint Online.
-#. Enter the following site URL: ``https://<sitename.com>/_layouts/15/appregnew.aspx``
-#. On the **App Information** page, click **Generate** next to the Client Id field.
-#. Click **Generate** next to the Client Secret field.
-#. Enter a title and a domain name for your App.
-#. Enter a **Redirect URL**. This application does not use callback from Sharepoint, so ``https://localhost`` should work.
-#. Click **Create**.
-#. Copy the displayed values of Client ID and Client Secret.
+#. Go to `Azure Portal <https://portal.azure.com/>`_ and sign in.
+#. Navigate to Azure Active Directory > App registrations.
+#. Click New registration.
+#. Enter an application name and select Accounts in this organizational directory only.
+#. Under Redirect URI, select Web and enter ``https://localhost`` (this application does not use callback).
+#. Click Register.
+#. Copy the Application (client) ID.
+#. Go to Certificates & secrets > Client secrets > New client secret.
+#. Add a description, select expiration, and click Add.
+#. Copy the client secret Value immediately (it won't be shown again).
+#. Go to API permissions > Add a permission > Microsoft Graph > Application permissions.
+#. Add Sites.Read.All and Sites.ReadWrite.All permissions.
+#. Click Grant admin consent for your organization.
 
 Webex Integration
 -----------------
@@ -107,6 +112,9 @@ But if it is deployed with AWS Elastic Beanstalk, the EB environment public doma
 
 * ``WEBAPP_PUBLIC_DOMAIN_NAME`` - web application public domain name
 
+This application stores Sharepoint configuration and Webex integration credentials in AWS, supporting both SSM Parameter Store and Secrets Manager.
+
+* ``AWS_SECRET_STORE`` - AWS storage backend (set to ``secretsmanager`` or defaults to ``ssm``)
 
 Starting the application
 ========================

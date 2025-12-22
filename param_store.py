@@ -1,11 +1,50 @@
-""" Utilities for interacting with Parameter Store. Implemented for AWS SSM Parameter Store. """
+""" Utilities for interacting with Parameter Store. Supports AWS SSM Parameter Store and AWS Secrets Manager. """
 
 import json
+import os
 import time
 
 import webexteamssdk
-
 import boto3
+
+
+def _use_secrets_manager():
+    """Check if Secrets Manager should be used based on environment variable."""
+    return os.getenv('AWS_SECRET_STORE', 'ssm').lower() == 'secretsmanager'
+
+
+def _get_secret_value(name):
+    """Get value from Secrets Manager."""
+    client = boto3.client('secretsmanager')
+    response = client.get_secret_value(SecretId=name)
+    client.close()
+    return response['SecretString']
+
+
+def _put_secret_value(name, value):
+    """Put value to Secrets Manager."""
+    client = boto3.client('secretsmanager')
+    try:
+        client.update_secret(SecretId=name, SecretString=value)
+    except client.exceptions.ResourceNotFoundException:
+        client.create_secret(Name=name, SecretString=value)
+    client.close()
+
+
+def _get_parameter_value(name):
+    """Get value from SSM Parameter Store."""
+    client = boto3.client('ssm')
+    response = client.get_parameter(Name=name, WithDecryption=True)
+    client.close()
+    return response['Parameter']['Value']
+
+
+def _put_parameter_value(name, value, secure=False):
+    """Put value to SSM Parameter Store."""
+    client = boto3.client('ssm')
+    param_type = 'SecureString' if secure else 'String'
+    client.put_parameter(Name=name, Value=value, Type=param_type, Overwrite=True)
+    client.close()
 
 
 def getSharepointParams():
@@ -19,24 +58,15 @@ def getSharepointParams():
             - spListName: Sharepoint Lists list name
             - spFolderName: the name of the current working Lists folder
     """
-
-    # load parameters from parameter store
-    ssm_client = boto3.client("ssm")
-
-    spSiteURL = ssm_client.get_parameter(
-        Name="/sharepoint-webex/spSiteURL",
-        WithDecryption=True
-    )['Parameter']['Value']
-    spListName = ssm_client.get_parameter(
-        Name="/sharepoint-webex/spListName",
-        WithDecryption=True
-    )['Parameter']['Value']
-    spFolderName = ssm_client.get_parameter(
-        Name="/sharepoint-webex/spFolderName",
-        WithDecryption=True
-    )['Parameter']['Value']
-
-    ssm_client.close()
+    if _use_secrets_manager():
+        spSiteURL = _get_secret_value('/sharepoint-webex/spSiteURL')
+        spListName = _get_secret_value('/sharepoint-webex/spListName')
+        spFolderName = _get_secret_value('/sharepoint-webex/spFolderName')
+    else:
+        spSiteURL = _get_parameter_value('/sharepoint-webex/spSiteURL')
+        spListName = _get_parameter_value('/sharepoint-webex/spListName')
+        spFolderName = _get_parameter_value('/sharepoint-webex/spFolderName')
+    
     return (spSiteURL, spListName, spFolderName)
 
 
@@ -50,25 +80,14 @@ def saveSharepointParams(spSiteURL, spListName, spFolderName):
     Returns:
         None
     """
-    ssm_client = boto3.client("ssm")
-    ssm_client.put_parameter(
-        Name="/sharepoint-webex/spSiteURL",
-        Value=spSiteURL,
-        Type="String",
-        Overwrite=True
-    )
-    ssm_client.put_parameter(
-        Name="/sharepoint-webex/spListName",
-        Value=spListName,
-        Type="String",
-        Overwrite=True
-    )
-    ssm_client.put_parameter(
-        Name="/sharepoint-webex/spFolderName",
-        Value=spFolderName,
-        Type="String",
-        Overwrite=True
-    )
+    if _use_secrets_manager():
+        _put_secret_value('/sharepoint-webex/spSiteURL', spSiteURL)
+        _put_secret_value('/sharepoint-webex/spListName', spListName)
+        _put_secret_value('/sharepoint-webex/spFolderName', spFolderName)
+    else:
+        _put_parameter_value('/sharepoint-webex/spSiteURL', spSiteURL)
+        _put_parameter_value('/sharepoint-webex/spListName', spListName)
+        _put_parameter_value('/sharepoint-webex/spFolderName', spFolderName)
 
 
 def getWebexIntegrationToken(webex_integration_client_id, webex_integration_client_secret):
@@ -89,13 +108,12 @@ def getWebexIntegrationToken(webex_integration_client_id, webex_integration_clie
         accessToken: fresh, usable Webex Integration access token
     """
 
-    # read access tokens from Parameter Store
-    ssm_client = boto3.client("ssm")
-    ssmStoredParameter = ssm_client.get_parameter(
-        Name="/sharepoint-webex/webexTokens",
-        WithDecryption=True
-    )
-    currentTokens = json.loads(ssmStoredParameter['Parameter']['Value'])
+    if _use_secrets_manager():
+        token_data = _get_secret_value('/sharepoint-webex/webexTokens')
+    else:
+        token_data = _get_parameter_value('/sharepoint-webex/webexTokens')
+    
+    currentTokens = json.loads(token_data)
     accessToken = currentTokens['access_token']
     createdTime = currentTokens['created']
     lifetime = 14*24*60*60    # 14 days
@@ -114,7 +132,6 @@ def getWebexIntegrationToken(webex_integration_client_id, webex_integration_clie
 
         accessToken = newTokens.access_token
 
-    ssm_client.close()
     return accessToken
 
 
@@ -128,13 +145,9 @@ def saveWebexIntegrationTokens(tokens):
         None
     """
     tokens['created'] = time.time()
-
-    ssm_client = boto3.client("ssm")
-    ssmStoredParameter = ssm_client.put_parameter(
-        Name="/sharepoint-webex/webexTokens",
-        Value=json.dumps(tokens),
-        Type="SecureString",
-        Overwrite=True
-    )
-    ssm_client.close()
-    return ssmStoredParameter
+    token_json = json.dumps(tokens)
+    
+    if _use_secrets_manager():
+        _put_secret_value('/sharepoint-webex/webexTokens', token_json)
+    else:
+        _put_parameter_value('/sharepoint-webex/webexTokens', token_json, secure=True)
