@@ -4,6 +4,9 @@ This web application serves two purposes:
     - respond to Webex bot webhooks
 """
 
+import os
+import sys
+
 # Debug: Check Python environment
 print("=== RUNTIME DEBUG INFO ===")
 print("Python executable:", sys.executable)
@@ -11,7 +14,6 @@ print("Python version:", sys.version)
 print("Python path:", sys.path)
 print("Current working directory:", os.getcwd())
 
-import os
 from dotenv import load_dotenv
 import requests
 
