@@ -5,7 +5,7 @@ build:
     build:
       - pip3 install -r requirements.txt
 run:
-  runtime-version: 3.11.9
+  runtime-version: 3.11
   pre-run:
     - pip3 install --upgrade pip
   command: python3 web.py
