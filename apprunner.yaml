@@ -1,10 +1,11 @@
 version: 1.0
-runtime: python3
+runtime: python311
 build:
   commands:
     build:
       - pip3 install -r requirements.txt
 run:
+  runtime-version: 3.11
   pre-run:
     - pip3 install --upgrade pip
   command: python3 web.py
