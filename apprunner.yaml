@@ -21,4 +21,4 @@ run:
       value: "ipd-sharepoint-webex-app-config"
   secrets:
     - name: APP_CONFIG_SECRET
-      value-from: "ipd-sharepoint-webex-app-config"
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config"
