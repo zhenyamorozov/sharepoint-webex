@@ -5,6 +5,7 @@ build:
     build:
 run:
   runtime-version: 3.11
+  instance-role: arn:aws:iam::${AWS::AccountId}:role/IPDAppRunnerInstanceRole
   pre-run:
     - yum install -y git
     - pip3 install --upgrade pip
@@ -12,3 +13,13 @@ run:
   command: python3 web.py
   network:
     port: 5000
+  env:
+    - name: FLASK_ENV
+      value: "production"
+    - name: AWS_DEFAULT_REGION
+      value: "ap-south-1"
+    - name: SECRETS_NAME
+      value: "ipd-sharepoint-webex-app-config"
+  secrets:
+    - name: APP_CONFIG_SECRET
+      value-from: "ipd-sharepoint-webex-app-config"
