@@ -20,5 +20,32 @@ run:
     - name: SECRETS_NAME
       value: "ipd-sharepoint-webex-app-config"
   secrets:
-    - name: APP_CONFIG_SECRET
-      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv"
+    - name: FLASK_SECRET_KEY
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:FLASK_SECRET_KEY::"
+    - name: WEBEX_INTEGRATION_CLIENT_ID
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_INTEGRATION_CLIENT_ID::"
+    - name: FLASK_SECRET_KEY
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:FLASK_SECRET_KEY::"
+    - name: VERBOSE_LOGGING
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:VERBOSE_LOGGING::"
+    - name: AWS_SECRET_STORE
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:AWS_SECRET_STORE::"
+    - name: SHAREPOINT_TENANT_ID
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:SHAREPOINT_TENANT_ID::"
+    - name: SHAREPOINT_CLIENT_ID
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:SHAREPOINT_CLIENT_ID::"
+    - name: SHAREPOINT_CLIENT_SECRET
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:SHAREPOINT_CLIENT_SECRET::"
+    - name: WEBEX_INTEGRATION_CLIENT_ID
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_INTEGRATION_CLIENT_ID::"
+    - name: WEBEX_INTEGRATION_CLIENT_SECRET
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_INTEGRATION_CLIENT_SECRET::"
+    - name: WEBEX_BOT_TOKEN
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_BOT_TOKEN::"
+    - name: WEBEX_BOT_ROOM_ID
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_BOT_ROOM_ID::"
+    - name: SHAREPOINT_PARAMS
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:SHAREPOINT_PARAMS::"
+    - name: WEBEX_INTEGRATION_PARAMS
+      value-from: "arn:aws:secretsmanager:ap-south-1:031129058206:secret:ipd-sharepoint-webex-app-config-cgQitv:WEBEX_INTEGRATION_PARAMS::"
+
