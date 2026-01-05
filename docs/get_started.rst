@@ -59,6 +59,7 @@ You must set a few environment variables.
 
 Required Variables
 ------------------
+* ``SHAREPOINT_TENANT_ID`` - Sharepoint application Tenant ID for MS Graph API
 * ``SHAREPOINT_CLIENT_ID`` - Sharepoint application Client ID
 * ``SHAREPOINT_CLIENT_SECRET`` - Sharepoint application Client Secret
 * ``WEBEX_INTEGRATION_CLIENT_ID`` - Webex integration Client ID value
@@ -108,8 +109,9 @@ Optional Variables
 Optional Deployment Variables
 -----------------------------
 If this application is deployed to AWS EC2 instance directly, there is no need to do anything. It will obtain the public domain name from AWS IMDS service.
-But if it is deployed with AWS Elastic Beanstalk, the EB environment public domain must be specified in environment.
+But if it is deployed with AWS Elastic Beanstalk, the EB environment public URL or domain name must be specified in environment.
 
+* ``WEBAPP_PUBLIC_URL`` - web application public URL, OR
 * ``WEBAPP_PUBLIC_DOMAIN_NAME`` - web application public domain name
 
 This application stores Sharepoint configuration and Webex integration credentials in AWS, supporting both SSM Parameter Store and Secrets Manager.
