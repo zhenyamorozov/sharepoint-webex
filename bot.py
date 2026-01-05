@@ -182,7 +182,7 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
                 )
             except Exception:
                 botApi.messages.create(
-                    markdown="Webinar scheduling requested. Will start the process. It will take a minute.",
+                    markdown="Webinar scheduling requested. Will start the process. It will take a few minutes.",
                     roomId=os.getenv("WEBEX_BOT_ROOM_ID")
                 )
 
