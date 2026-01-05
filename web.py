@@ -71,9 +71,12 @@ except Exception:
     # do nothing
     pass
 # try to get the public URL from env
-if os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME"):
-    webAppPublicUrl = "https://" + os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME")
+if os.getenv("WEBAPP_PUBLIC_URL"):
+    webAppPublicUrl = os.getenv("WEBAPP_PUBLIC_URL")
     print("Obtained public URL from environment variable: " + webAppPublicUrl)
+elif os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME"):
+    webAppPublicUrl = "https://" + os.getenv("WEBAPP_PUBLIC_DOMAIN_NAME")
+    print("Obtained public URL from environment domain variable: " + webAppPublicUrl)
 
 if not webAppPublicUrl:
     print("Could not get the web app public URL")
