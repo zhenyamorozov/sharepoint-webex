@@ -297,6 +297,81 @@ def stringContactsToDict(contacts):
 
     return _res
 
+def update_invitees(webinar_id, event, webexApi):
+    """Sync panelists and cohosts for a webinar.
+    
+    Args:
+        webinar_id: Webex webinar ID
+        event: dict with panelists/cohosts info
+        webexApi: Webex API client
+    """
+
+    try:
+        # collect currently invited panelists and cohosts
+        # also serves as an "uninvite list" - checked invitees are removed from the list
+        # if there are any remaining, they will be uninvited
+        currentInvitees = {}
+        for i in webexApi.meeting_invitees.list(webinar_id, panelist=True):
+            if i.panelist or i.coHost:
+                currentInvitees[i.email] = i
+    except Exception as ex:
+        logger.error("❗ Failed to process invitees for webinar \"%s\". API returned error: %s", event['title'], ex)
+    else:
+
+        # process panelists and cohosts
+
+        if getWebinarProperty('noCohosts'):
+            # treat cohosts as panelists
+            event['panelists'].update(event['cohosts'])
+            event['cohosts'] = {}
+
+        eventInvitees = event['panelists'] | event['cohosts']    # merged dicts: https://peps.python.org/pep-0584/
+        for email in eventInvitees:
+            if email in currentInvitees:
+                # already invited
+                if eventInvitees[email] != currentInvitees[email].displayName \
+                        or (email in event['cohosts']) != currentInvitees[email].coHost:
+                    # name or status changed
+                    try:
+                        webexApi.meeting_invitees.update(
+                            meetingInviteeId=currentInvitees[email].id,
+                            email=email,
+                            displayName=eventInvitees[email],
+                            panelist=email in event['panelists'] or email in event['cohosts'],    # cohosts must also be panelists as per Webex API behavior
+                            coHost=email in event['cohosts'],
+                            sendEmail=True
+                        )
+                        logger.info("🚩 Updated invitee %s <%s>", eventInvitees[email], email)
+                    except Exception as ex:
+                        logger.error("❗ Failed to update invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
+                del currentInvitees[email]    # remove processed from the uninvite list
+            else:
+                # new, need to invite
+                try:
+                    webexApi.meeting_invitees.create(
+                        meetingId=webinar_id,
+                        email=email,
+                        displayName=eventInvitees[email],
+                        panelist=email in event['panelists'] or email in event['cohosts'],    # cohosts must also be panelists as per Webex API behavior
+                        coHost=email in event['cohosts'],
+                        sendEmail=True
+                    )
+                    logger.info("🧑 Invited %s <%s>", eventInvitees[email], email)
+                except Exception as ex:
+                    logger.error("❗ Failed to create invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
+        # uninvite panelists/cohosts who remained in the uninvite list
+        for email, invitee in currentInvitees.items():
+            try:
+                webexApi.meeting_invitees.delete(
+                    meetingInviteeId=invitee.id
+                )
+                logger.info("🚪 Uninvited %s <%s>", invitee.displayName, email)
+            except Exception as ex:
+                logger.error("❗ Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
+
+
+
+
 
 def run():
     """This is the main function that runs the scheduling process. Takes no arguments, returns nothing, just 
@@ -401,6 +476,8 @@ def run():
         # Loop over the Sharepoint list
         #
         for spRow in spList.get_folder_items():
+            # debug
+                continue
             
             if spRow.get(spColumnMap['create']):
                 event = {}
@@ -567,69 +644,9 @@ def run():
                         logger.error("❗ Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
 
                 # update invitees (panelists and cohosts) for created or updated event
-                try:
-                    # collect currently invited panelists and cohosts
-                    # also serves as an "uninvite list" - checked invitees are removed from the list
-                    # if there are any remaining, they will be uninvited
-                    currentInvitees = {}
-                    for i in webexApi.meeting_invitees.list(w.id, panelist=True):
-                        if i.panelist or i.coHost:
-                            currentInvitees[i.email] = i
-                except Exception as ex:
-                    logger.error("❗ Failed to process invitees for webinar \"%s\". API returned error: %s", event['title'], ex)
-                else:
-
-                    # process panelists and cohosts
-
-                    if getWebinarProperty('noCohosts'):
-                        # treat cohosts as panelists
-                        event['panelists'].update(event['cohosts'])
-                        event['cohosts'] = {}
-
-                    eventInvitees = event['panelists'] | event['cohosts']    # merged dicts: https://peps.python.org/pep-0584/
-                    for email in eventInvitees:
-                        if email in currentInvitees:
-                            # already invited
-                            if eventInvitees[email] != currentInvitees[email].displayName \
-                                    or (email in event['cohosts']) != currentInvitees[email].coHost:
-                                # name or status changed
-                                try:
-                                    webexApi.meeting_invitees.update(
-                                        meetingInviteeId=currentInvitees[email].id,
-                                        email=email,
-                                        displayName=eventInvitees[email],
-                                        panelist=email in event['panelists'] or email in event['cohosts'],    # cohosts must also be panelists as per Webex API behavior
-                                        coHost=email in event['cohosts'],
-                                        sendEmail=True
-                                    )
-                                    logger.info("🚩 Updated invitee %s <%s>", eventInvitees[email], email)
-                                except Exception as ex:
-                                    logger.error("❗ Failed to update invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
-                            del currentInvitees[email]    # remove processed from the uninvite list
-                        else:
-                            # new, need to invite
-                            try:
-                                webexApi.meeting_invitees.create(
-                                    meetingId=w.id,
-                                    email=email,
-                                    displayName=eventInvitees[email],
-                                    panelist=email in event['panelists'] or email in event['cohosts'],    # cohosts must also be panelists as per Webex API behavior
-                                    coHost=email in event['cohosts'],
-                                    sendEmail=True
-                                )
-                                logger.info("🧑 Invited %s <%s>", eventInvitees[email], email)
-                            except Exception as ex:
-                                logger.error("❗ Failed to create invitee %s for webinar \"%s\". API returned error: %s", email, event['title'], ex)
-                    # uninvite panelists/cohosts who remained in the uninvite list
-                    for email, invitee in currentInvitees.items():
-                        try:
-                            webexApi.meeting_invitees.delete(
-                                meetingInviteeId=invitee.id
-                            )
-                            logger.info("🚪 Uninvited %s <%s>", invitee.displayName, email)
-                        except Exception as ex:
-                            logger.error("❗ Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
-
+                update_invitees(w.id, event, webexApi)
+                
+                # TODO update registration links
         # /for
 
         logger.warning("\nDone in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
