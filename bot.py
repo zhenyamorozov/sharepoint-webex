@@ -80,6 +80,29 @@ def init(webAppPublicUrl):
     except Exception:
         print("Could not create a Webex bot API webhook.")
 
+def acquire_lock():
+    """Check if a process is already running and try to acquire lock.
+    
+    Returns:
+        True if acquired
+        False if already locked
+    """
+
+    lock_file = os.path.join(os.environ.get('TEMP', '/tmp'), 'sharepoint-webex.lock')
+    
+    if os.path.exists(lock_file):
+        return False
+    
+    with open(lock_file, 'w') as f:
+        f.write(str(os.getpid()))
+    
+    return True
+
+def release_lock():
+    """Release the lock and remove the lock file."""
+    lock_file = os.path.join(os.environ.get('TEMP', '/tmp'), 'sharepoint-webex.lock')
+    if os.path.exists(lock_file):
+        os.remove(lock_file)
 
 # @application.route("/webhook", methods=['GET', 'POST'])
 def webhook():
@@ -187,7 +210,16 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
                 )
 
             # invoke the webinar scheduling process
-            schedule.run()
+            if not acquire_lock():
+                botApi.messages.create(
+                    markdown="""⚠️ Cannot start scheduling because a process is already running.""",
+                    roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                )
+            else:
+                try:
+                    schedule.run()
+                finally:
+                    release_lock()
 
             # send reduced greeting card - only action buttons
             botApi.messages.create(
