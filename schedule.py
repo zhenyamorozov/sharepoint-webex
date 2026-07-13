@@ -8,6 +8,7 @@ import os
 import logging
 import io
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from email.utils import getaddresses
 import tempfile
@@ -36,7 +37,7 @@ from exceptions import (
 #
 logger = logging.getLogger(__name__)
 # Logger usage:
-# logger.critical("Message in case of a fatal error causing SystemExit")
+# logger.fatal("Message in case of a fatal error causing SystemExit")
 # logger.error("Message in case of an error, goes to the brief log")
 # logger.warning("Message to be output to the brief log (the Webex message itself)")
 # logger.info("Message to be output in the full log (text file attached to Webex message)")
@@ -190,6 +191,15 @@ def initSharepoint():
                 spColumnMap[column] = available_columns[display_name]
             else:
                 raise SharepointColumnMappingError(f"A required column is missing in your Sharepoint list: {display_name}")
+
+        # Add invitation sources to column map
+        spColumnMap['invitation_sources'] = {}
+        for key, value in available_columns.items():
+            if SHAREPOINT_PARAMS['columns']['attendeeUrl'] in key:
+                match = re.search(r'\[([^\]]+)\]', key, re.IGNORECASE)
+                if match:
+                    spColumnMap['invitation_sources'][match.group(1)] = value
+
         return (spApi, spApi.folder, spColumnMap)
 
     except Exception as ex:
@@ -369,9 +379,54 @@ def update_invitees(webinar_id, event, webexApi):
             except Exception as ex:
                 logger.error("❗ Failed to delete invitee %s from webinar \"%s\". API returned error: %s", email, event['title'], ex)
 
+def create_invitation_sources(webexApi, webinar_id, sources):
+    """Create invitation sources for a webinar to track vendor/contact marketing efforts.
+    
+    Invitation sources allow tracking which vendors or contacts attendees come from
+    by assigning source IDs to invitation links.
+    
+    Args:
+        webexApi: Webex API client
+        webinar_id: Webex webinar ID
+        sources: list of source names to create (e.g., ["Vendor A", "Vendor B"])
+    
+    Returns:
+        list: Created invitation sources with their details (IDs, URLs, etc.)
+            Returns empty list if creation fails
+    """
 
+    if not sources:
+        logger.debug("No invitation sources to create.")
+        return []
+    
+    try:
+        # Get the Webex account email address, required for invitation sources
+        me = webexApi.people.me()
+        source_email = me.emails[0]
+        assert source_email
+    except Exception as ex:
+        logger.error("Failed to get Webex account info: %s", ex)
+        return []
 
+    post_data = webexteamssdk.utils.dict_from_items_with_values(
+        items = [
+            {
+                "sourceId": source_id,
+                "sourceEmail": source_email
+            } for source_id in sources
+        ]
+    )
 
+    try:
+        # using Webex SDK internal function to perform unsupported API call
+        json_data = webexApi._session.post(
+            f'meetings/{webinar_id}/invitationSources',
+            json=post_data
+        )
+        return json_data.get('items')
+    except Exception as ex:
+        logger.error("Failed to create invitation sources for webinar %s: %s", webinar_id, ex)
+        return []
 
 def run():
     """This is the main function that runs the scheduling process. Takes no arguments, returns nothing, just 
@@ -476,8 +531,6 @@ def run():
         # Loop over the Sharepoint list
         #
         for spRow in spList.get_folder_items():
-            # debug
-                continue
             
             if spRow.get(spColumnMap['create']):
                 event = {}
@@ -646,7 +699,24 @@ def run():
                 # update invitees (panelists and cohosts) for created or updated event
                 update_invitees(w.id, event, webexApi)
                 
-                # TODO update registration links
+                # update registration sources - individual registration links with embedded source tracking
+                try:
+                    # collect list of new invitation sources
+                    new_invitation_sources = []
+                    for source, column_name in spColumnMap['invitation_sources'].items():
+                        # if this invitation source's cell is empty, add to creating list
+                        if not spRow.get(column_name):
+                            new_invitation_sources.append(source)
+                    
+                    # create and fill in missing invitation source registration links
+                    if new_invitation_sources:
+                        created_invitation_sources = create_invitation_sources(webexApi, w.id, new_invitation_sources)
+                        for new_source in created_invitation_sources:
+                            spRow[spColumnMap['invitation_sources'][new_source['sourceId']]] = new_source['registerLink']
+                        spRow.save()
+                        logger.info(f"Created registration source links: %s", ', '.join([i['sourceId'] for i in created_invitation_sources]))
+                except Exception as ex:
+                    logger.error("❗ Failed to create registration sources: %s", ex)
         # /for
 
         logger.warning("\nDone in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
