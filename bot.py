@@ -197,26 +197,28 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
 
         # "Schedule now" action
         if action.type == "submit" and action.inputs['act'] == "schedule now":
-            try:
-                actor = botApi.people.get(personId=webhookJson['actorId'])
-                botApi.messages.create(
-                    markdown=f"Webinar scheduling requested by <@personId:{actor.id}|{actor.firstName}>. Will start the process. It will take a few minutes.",
-                    roomId=os.getenv("WEBEX_BOT_ROOM_ID")
-                )
-            except Exception:
-                botApi.messages.create(
-                    markdown="Webinar scheduling requested. Will start the process. It will take a few minutes.",
-                    roomId=os.getenv("WEBEX_BOT_ROOM_ID")
-                )
 
-            # invoke the webinar scheduling process
             if not acquire_lock():
                 botApi.messages.create(
                     markdown="""⚠️ Cannot start scheduling because a process is already running.""",
                     roomId=os.getenv("WEBEX_BOT_ROOM_ID")
                 )
             else:
+                # lock successfully acquired
                 try:
+                    actor = botApi.people.get(personId=webhookJson['actorId'])
+                    botApi.messages.create(
+                        markdown=f"Webinar scheduling requested by <@personId:{actor.id}|{actor.firstName}>. Will start the process. It will take a few minutes.",
+                        roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                    )
+                except Exception:
+                    botApi.messages.create(
+                        markdown="Webinar scheduling requested. Will start the process. It will take a few minutes.",
+                        roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                    )
+
+                try:
+                    # invoke the webinar scheduling process
                     schedule.run()
                 finally:
                     release_lock()
