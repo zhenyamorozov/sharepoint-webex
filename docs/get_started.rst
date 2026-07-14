@@ -2,12 +2,14 @@
 Get Started
 ===========
 
-Getting Access to Services
-==========================
+Get Access to Services
+======================
+
 This application uses three different services. You need to provide credentials for all three.
 
 Sharepoint
 ----------
+
 To get the Sharepoint API Client ID and Client Secret:
 
 #. Go to `Azure Portal <https://portal.azure.com/>`_ and sign in.
@@ -26,6 +28,7 @@ To get the Sharepoint API Client ID and Client Secret:
 
 Webex Integration
 -----------------
+
 To create a new Webex Integration:
 
 #. Go to `developer.webex.com <https://developer.webex.com/>`_ and sign in.
@@ -42,8 +45,9 @@ To create a new Webex Integration:
     * ``meeting:participants_read``
 #. Copy the Client ID and Client Secret.
 
-Webex bot
+Webex Bot
 ---------
+
 To create a new Webex bot identity:
 
 #. Go to `developer.webex.com <https://developer.webex.com/>`_ and sign in.
@@ -53,12 +57,13 @@ To create a new Webex bot identity:
 #. Copy the bot access token.
 
 
-Setting Environment Variables
-=============================
+Set Environment Variables
+=========================
 You must set a few environment variables.
 
 Required Variables
 ------------------
+
 * ``SHAREPOINT_TENANT_ID`` - Sharepoint application Tenant ID for MS Graph API
 * ``SHAREPOINT_CLIENT_ID`` - Sharepoint application Client ID
 * ``SHAREPOINT_CLIENT_SECRET`` - Sharepoint application Client Secret
@@ -69,6 +74,7 @@ Required Variables
 
 Optional Variables
 ------------------
+
 * ``SHAREPOINT_PARAMS`` - a JSON string according to the template. You can use this to customize default Sharepoint Lists column titles and set nicknames for hosts and panelists.
 .. code-block:: json
 
@@ -108,6 +114,7 @@ Optional Variables
 
 Optional Deployment Variables
 -----------------------------
+
 If this application is deployed to AWS EC2 instance directly, there is no need to do anything. It will obtain the public domain name from AWS IMDS service.
 But if it is deployed with AWS Elastic Beanstalk, the EB environment public URL or domain name must be specified in environment.
 
@@ -118,14 +125,14 @@ This application stores Sharepoint configuration and Webex integration credentia
 
 * ``AWS_SECRET_STORE`` - AWS storage backend (set to ``secretsmanager`` or defaults to ``ssm``)
 
-Starting the application
-========================
+Start the Application
+=====================
 
 Start the bot by launching ``web.py``. 
 
 
-Setting Up and Launching
-========================
+Set Up and Authorize Automation
+===============================
 
 Initialize the bot by @mentioning it and follow instructions on the cards. 
 
@@ -145,7 +152,13 @@ Authorize this automation to create webinars on behalf of a user. The authorizat
     :width: 753
     :alt: The bot displays the current authorized account for webinars creation and offers a button to authorize another user.
 
-Populate your Sharepoint list with webinar data, change ``Create`` to ``yes`` and launch automation with **Schedule now** button.
+Use the Automation
+==================
+
+Schedule Webinars
+-----------------
+
+Populate your Sharepoint list with webinar data, change ``Create`` to ``yes`` and launch automation with **Schedule webinars** button.
 
 .. image:: images/sharepoint-prepare.gif
     :width: 1500
@@ -160,3 +173,33 @@ Your webinars are now scheduled.
 .. image:: images/sharepoint-complete.gif
     :width: 1500
     :alt: Webinars are created and the Sharepoint list is populated with the webinar IDs and details.
+
+Count Registrants
+-----------------
+
+To update registrant counts for all scheduled webinars:
+
+1. Mention the @bot in the Webex room
+2. Click the **Count registrants** button
+3. The bot will count registrants for all webinars and update the Sharepoint list
+
+.. image:: images/bot-count-registrants.png
+    :width: 1038
+    :alt: The bot reports registrant counting has completed
+
+Invitation Sources
+------------------
+
+Invitation sources allow you to track which vendors or contacts bring attendees to your webinars. 
+
+Setup:
+1. In your Sharepoint list, add columns for each invitation source (e.g., "Attendee URL [fb]", "Attendee URL [marketo]")
+2. Mark webinars for creation with the ``Create`` field
+3. Run the scheduling process
+
+The automation will:
+- Create invitation sources in Webex for each vendor/contact
+- Generate unique registration links with embedded source IDs
+- Save the links back to your Sharepoint list
+
+Webex supports up to 50 invitation sources per webinar.

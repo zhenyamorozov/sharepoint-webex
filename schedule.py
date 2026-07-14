@@ -428,7 +428,7 @@ def create_invitation_sources(webexApi, webinar_id, sources):
         logger.error("Failed to create invitation sources for webinar %s: %s", webinar_id, ex)
         return []
 
-def run():
+def schedule():
     """This is the main function that runs the scheduling process. Takes no arguments, returns nothing, just 
     does the scheduling job. It generates a detailed and a brief log and sends them to the Webex space.
 
@@ -522,10 +522,6 @@ def run():
 
         # Set default time zone
         os.environ['TZ'] = 'UTC'
-
-        # Will calculate total amount of registrants
-        totalRegistrantCount = 0
-
 
         #
         # Loop over the Sharepoint list
@@ -679,23 +675,6 @@ def run():
                             pass
                         continue
 
-                    # refresh webinar registrant count in Sharepoint list
-                    try:
-                        registrantCount = sum(1 for _ in webexApi.meeting_invitees.list(w.id))
-                        # TODO implement in a more efficient way once the list-meeting-registrants endpoint is added to the SDK
-                        totalRegistrantCount += registrantCount
-
-                        if 'registrantCount' in spColumnMap:
-                            spRow[spColumnMap['registrantCount']] = registrantCount
-                        else:
-                            raise SharepointColumnMappingError("⛔ No column in Sharepoint list to save Registration Count.")
-
-                        spRow.save()
-                        logger.info("Refreshed webinar Registration Count in Sharepoint list.")
-
-                    except Exception as ex:
-                        logger.error("❗ Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
-
                 # update invitees (panelists and cohosts) for created or updated event
                 update_invitees(w.id, event, webexApi)
                 
@@ -719,7 +698,7 @@ def run():
                     logger.error("❗ Failed to create registration sources: %s", ex)
         # /for
 
-        logger.warning("\nDone in %s. Total registrants: %s.", datetime.now()-startTime, totalRegistrantCount)
+        logger.warning("\nDone in %s.", datetime.now()-startTime)
 
         #
         # Process logs and close logging
@@ -788,7 +767,221 @@ def run():
         logger.removeHandler(consoleLogHandler)
         logging.shutdown()
 
+def count_registrants():
+    """This is the function that counts registrants. Takes no arguments, returns nothing. Updates Sharepoint list. Generates a detailed and a brief log and sends them to the Webex space.
+
+        Args: None
+
+        Returns: None
+
+    """
+
+    # Setup logging
+    
+    # Clear any existing handlers to prevent duplicates
+    logger.handlers.clear()
+    
+    # Setup log handler for brief log
+    briefLogString = io.StringIO()
+    briefLogHandler = logging.StreamHandler(briefLogString)
+    briefLogHandler.setLevel(logging.WARNING)
+    logger.addHandler(briefLogHandler)
+
+    # Setup log handler for full log
+    fullLogString = io.StringIO()
+    fullLogHandler = logging.StreamHandler(fullLogString)
+    fullLogHandler.setLevel(logging.INFO)
+    logger.addHandler(fullLogHandler)
+
+    # log handler for console
+    consoleLogHandler = logging.StreamHandler()
+    consoleLogHandler.setLevel(logging.DEBUG)
+    logger.addHandler(consoleLogHandler)
+
+    try:
+        startTime = datetime.now()
+        logger.warning("Starting...")
+
+        #
+        # Load env variables and check if all env variables are provided
+        #
+        logger.info("Loading parameters and checking if all required parameters are provided.")
+        loadParameters()
+        logger.info("Required parameters are successfully loaded.\n")
+
+        #
+        # Initialize access to Sharepoint
+        #
+        logger.info("Initializing access to Sharepoint.")
+        try:
+            spList, spFolder, spColumnMap = initSharepoint()
+        except ParameterStoreError as ex:
+            logger.fatal("⛔ Could not read Sharepoint Folder Name from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
+            raise SystemExit()
+        except SharepointInitError as ex:
+            logger.fatal("⛔ Sharepoint API connection error: %s", ex)
+            raise SystemExit()
+        except SharepointColumnMappingError as ex:
+            logger.fatal("⛔ Sharepoint List column mapping error: %s", ex)
+            raise SystemExit()
+        except Exception as ex:
+            logger.fatal("⛔ Sharepoint initialization error: %s", ex)
+            raise SystemExit()
+        logger.info("Successfully initialized access to Sharepoint.")
+
+        #
+        # Initialize access to Webex Integration
+        #
+        logger.info("Initializing access to Webex Integration.")
+        try:
+            webexApi = initWebexIntegration()
+        except ParameterStoreError as ex:
+            logger.fatal("⛔ Could not read Webex Integration tokens from Parameter Store. Check local AWS configuration. Service reported: %s", ex)
+            raise SystemExit()
+        except WebexIntegrationInitError as ex:
+            logger.fatal("⛔ Could not initialize Webex Integration. Service reported: %s", ex)
+            raise SystemExit()
+        except Exception as ex:
+            logger.fatal("⛔ Could not initialize Webex Integration. Service reported: %s", ex)
+            raise SystemExit()
+        logger.info("Successfully initialized access to Webex Integration.")
+
+        #
+        # Initialize access to Webex bot for logging and control
+        #
+        logger.info("Initializing access to Webex bot.")
+        try:
+            botApi = initWebexBot()
+        except Exception as ex:
+            logger.fatal("⛔ Could not initialize Webex bot. Service reported: %s", ex)
+            raise SystemExit()
+        logger.info("Successfully initialized access to Webex bot.")
+
+
+        # Set default time zone
+        os.environ['TZ'] = 'UTC'
+
+        # Will calculate total amount of registrants and webinars
+        totalRegistrantCount = 0
+        webinarCount = 0
+        
+        logger.info("")
+
+        #
+        # Loop over the Sharepoint list
+        #
+        for spRow in spList.get_folder_items():
+            
+            if spRow.get(spColumnMap['create']) and spRow.get(spColumnMap['webinarId']):
+
+                webinarCount += 1
+
+                # gather all webinar properties
+                event = {}
+                try:
+                    event['title'] = getWebinarProperty('title', spRow) or "Generic Webinar Title"
+                    event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
+                    if event['id']:
+                        event['id'] = event['id'].hex # Convert UUID() to string
+                    
+                except Exception as ex:
+                    logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
+                    continue
+
+                # refresh webinar registrant count in Sharepoint list
+                try:
+                    registrantCount = sum(1 for _ in webexApi.meeting_invitees.list(event['id']))
+                    # TODO implement in a more efficient way once the list-meeting-registrants endpoint is added to the SDK
+                    totalRegistrantCount += registrantCount
+
+                    if 'registrantCount' in spColumnMap:
+                        spRow[spColumnMap['registrantCount']] = registrantCount
+                        spRow.save()
+                    else:
+                        raise SharepointColumnMappingError("⛔ No column in Sharepoint list to save Registration Count.")
+
+                    
+                    logger.info("%s: %s", event['title'], registrantCount)
+
+                except Exception as ex:
+                    logger.error("❗ Failed to refresh webinar Registration Count in Sharepoint list. API returned error: %s", ex)
+
+        # /for
+
+        logger.warning("\nDone in %s. Total registrants: %s. Total webinars: %s",
+            datetime.now()-startTime,
+            totalRegistrantCount,
+            webinarCount
+        )
+
+        #
+        # Process logs and close logging
+        #
+        try:
+            if VERBOSE_LOGGING:
+                # Split the full log in chunks at new lines and post as a thread
+                chunk_limit = 7000 # Webex limit is 7439 bytes
+                parent_id = None
+                current_chunk = "Done counting webinar registrants. Full log follows.\n\n"
+
+                for line in fullLogString.getvalue().splitlines():
+                    if len(current_chunk) + len(line) + 1 <= chunk_limit:
+                        current_chunk += line + '\n'
+                    else:
+
+                        # Post the chunk
+                        msg = botApi.messages.create(
+                            roomId=WEBEX_BOT_ROOM_ID,
+                            text=current_chunk,
+                            parentId=parent_id
+                        )
+
+                        # Make the next chunk a reply message
+                        if not parent_id:
+                            parent_id = msg.id
+
+                        # Start a new chunk
+                        current_chunk = line + '\n'
+
+                # Post the remaining last chunk
+                msg = botApi.messages.create(
+                    roomId=WEBEX_BOT_ROOM_ID,
+                    text=current_chunk,
+                    parentId=parent_id
+                )
+            
+            
+            else:
+                # Post short log with attached full log
+                with tempfile.NamedTemporaryFile(
+                    prefix=datetime.utcnow().strftime("%Y%m%d-%H%M%S "),
+                    suffix=".txt",
+                    mode="wt",
+                    encoding="utf-8",
+                    delete=False
+                ) as tmp:
+                    tmp.write(fullLogString.getvalue())
+
+                botApi.messages.create(
+                    roomId=WEBEX_BOT_ROOM_ID,
+                    text="Done counting webinar registrants. Full log attached. Brief log follows.\n\n" + briefLogString.getvalue(),
+                    files=[tmp.name]
+                )
+
+                os.remove(tmp.name)
+        except Exception as ex:
+            logger.error("Failed to post log into Webex bot room. %s", ex)
+
+    finally:
+        # close logging
+        briefLogString.close()
+        fullLogString.close()
+        logger.removeHandler(briefLogHandler)
+        logger.removeHandler(fullLogHandler)
+        logger.removeHandler(consoleLogHandler)
+        logging.shutdown()
 
 # Run the scheduling process if launched as a script
 if __name__ == "__main__":
-    run()
+    schedule()
+    count_registrants()

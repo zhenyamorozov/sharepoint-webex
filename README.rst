@@ -1,6 +1,7 @@
 =====================================
 Sharepoint Lists and Webex Automation
 =====================================
+
 .. image:: https://static.production.devnetcloud.com/codeexchange/assets/images/devnet-published.svg
     :alt: published
     :target: https://developer.cisco.com/codeexchange/github/repo/zhenyamorozov/sharepoint-webex
@@ -20,7 +21,7 @@ Schedule all webinars with one bot command
 
 .. image:: docs/images/bot-schedule.gif
     :width: 854
-    :alt: Webex bot screenshot showing clicking the Schedule Now button
+    :alt: Webex bot screenshot showing clicking the Schedule webinars button
 
 Webinars are created
 
@@ -33,6 +34,7 @@ If need to change title, description, or reschedule, run the bot command again. 
 
 Features
 --------
+
 This automation ties together three different services: Sharepoint, Webex Meetings/Webinars and Webex Messaging bot. It helps a lot if you are running many webinars, especially in series, especially with multiple people collaborating on them.
 
 This automation supports:
@@ -43,6 +45,9 @@ This automation supports:
 - Creation can be triggered by bot command or by schedule
 - Customizable webinar parameters
 - Attendee link, host key and registrant count updated into the Sharepoint list
+- Count and update registrant counts for all webinars with one bot command
+- Create invitation source links to track marketing efforts (which vendors/contacts bring attendees)
+- Prevents concurrent scheduling operations to avoid data conflicts
 
 
 How it works
@@ -50,8 +55,10 @@ How it works
 
 - Collect all webinar information in a Sharepoint list, one webinar per row. Include details like webinar title, description, date and time, hosts, panelists etc. The list can be shared by multiple people for teamwork.
 - Check out individual webinars for creation by changing the ``Create`` field to ``yes/True``. Save the changes.
-- Mention the @bot in the Webex room and click ``Schedule now`` button.
+- Mention the @bot in the Webex room and click ``Schedule webinars`` button to create or update webinars.
 - The scheduling will be triggered and the bot will report back after some seconds (or minutes, depending on your amount of webinars).
+- Click the ``Count registrants`` button to update registrant counts for all scheduled webinars.
+- The automation can create individual registration links with embedded source tracking to measure marketing effectiveness.
 
 
 Get Started

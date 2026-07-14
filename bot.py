@@ -140,7 +140,8 @@ def webhook():
 
         ],
         actions=[
-            Submit(title="Schedule now", data={'act': "schedule now"}),
+            Submit(title="Schedule webinars", data={'act': "schedule now"}),
+            Submit(title="Count registrants", data={'act': "count registrants"}),
             Submit(title="Set Sharepoint", data={'act': "set sharepoint"}),
             Submit(title="Authorize Webex", data={'act': "authorize webex"}),
             Submit(title="?", data={'act': "help"}),
@@ -180,7 +181,7 @@ def webhook():
 Sharepoint and Webex Automation creates webinars in Webex Webinar based on information in Sharepoint Lists.
 It is easy to use:
 1. Collaborate with your team on webinar planning in a Sharepoint List. Use one folder per webinar series, one list item per webinar. When ready for creation, check **Create**.
-2. Click **Schedule Now** button to start webinar scheduling process.
+2. Click **Schedule webinars** button to start webinar scheduling process.
 3. Webinars are created.
 
 Features and basic usage: https://github.com/zhenyamorozov/sharepoint-webex#tbd
@@ -219,7 +220,42 @@ How to set up and get started: https://github.com/zhenyamorozov/sharepoint-webex
 
                 try:
                     # invoke the webinar scheduling process
-                    schedule.run()
+                    schedule.schedule()
+                finally:
+                    release_lock()
+
+            # send reduced greeting card - only action buttons
+            botApi.messages.create(
+                text=greetingCard.fallbackText,
+                roomId=os.getenv("WEBEX_BOT_ROOM_ID"),
+                attachments=[AdaptiveCard(fallbackText=greetingCard.fallbackText, actions=greetingCard.actions)]
+            )
+
+        # "Count registrants" action
+        if action.type == "submit" and action.inputs['act'] == "count registrants":
+
+            if not acquire_lock():
+                botApi.messages.create(
+                    markdown="""⚠️ Cannot start counting registrants because a process is already running.""",
+                    roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                )
+            else:
+                # lock successfully acquired
+                try:
+                    actor = botApi.people.get(personId=webhookJson['actorId'])
+                    botApi.messages.create(
+                        markdown=f"Registrant counting requested by <@personId:{actor.id}|{actor.firstName}>. It will take a few minutes.",
+                        roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                    )
+                except Exception:
+                    botApi.messages.create(
+                        markdown="Registrant counting requested. It will take a few minutes.",
+                        roomId=os.getenv("WEBEX_BOT_ROOM_ID")
+                    )
+
+                try:
+                    # invoke the Registrant counting process
+                    schedule.count_registrants()
                 finally:
                     release_lock()
 
