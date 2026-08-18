@@ -573,9 +573,7 @@ def schedule():
                     alwaysInvitePanelists = stringContactsToDict(alwaysInvitePanelists)
                     event['panelists'].update(alwaysInvitePanelists)
 
-                    event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
-                    if event['id']:
-                        event['id'] = event['id'].hex # Convert UUID() to string
+                    event['id'] = getWebinarProperty('webinarId', spRow)
                     
                     logger.info("Processing \"%s\"", event['title'])
                 except Exception as ex:
