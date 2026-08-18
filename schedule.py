@@ -573,9 +573,7 @@ def schedule():
                     alwaysInvitePanelists = stringContactsToDict(alwaysInvitePanelists)
                     event['panelists'].update(alwaysInvitePanelists)
 
-                    event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
-                    if event['id']:
-                        event['id'] = event['id'].hex # Convert UUID() to string
+                    event['id'] = getWebinarProperty('webinarId', spRow)
                     
                     logger.info("Processing \"%s\"", event['title'])
                 except Exception as ex:
@@ -881,8 +879,6 @@ def count_registrants():
                 try:
                     event['title'] = getWebinarProperty('title', spRow) or "Generic Webinar Title"
                     event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
-                    if event['id']:
-                        event['id'] = event['id'].hex # Convert UUID() to string
                     
                 except Exception as ex:
                     logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
