@@ -878,7 +878,7 @@ def count_registrants():
                 event = {}
                 try:
                     event['title'] = getWebinarProperty('title', spRow) or "Generic Webinar Title"
-                    event['id'] = getWebinarProperty('webinarId', spRow) # Graph API returns UUID() with hyphens
+                    event['id'] = getWebinarProperty('webinarId', spRow)
                     
                 except Exception as ex:
                     logger.error("❗ Failed to process \"%s\". A webinar property is not valid: %s", event['title'], ex)
